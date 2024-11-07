@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "afrolid"
+version = "0.1.0"
+description = ""
+authors = ["theyorubayesian <akin.o.oladipo@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sentencepiece = "^0.2.0"
+torch = "^2.5.1"
+requests = "^2.32.3"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

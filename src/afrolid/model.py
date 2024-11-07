@@ -34,7 +34,7 @@ class AfroLIDModel(nn.Transformer):
         max_position_embeddings: int = 1026,
         dropout: int = 0.1,
         activation: str = 'relu'
-    ) -> nn.Transformer:
+    ) -> None:
         super(AfroLIDModel, self).__init__(
             d_model=d_model,
             nhead=nhead,
