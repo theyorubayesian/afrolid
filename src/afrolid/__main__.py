@@ -1,4 +1,4 @@
-from .utils import load_afrolid_model_and_tokenizer
+from .utils import load_afrolid_artifacts, prepare_input_for_model
 
 
 def main():

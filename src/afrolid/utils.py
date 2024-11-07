@@ -1,14 +1,15 @@
 import requests
-from pathlib import Path
-from platformdirs import user_cache_dir
 import tarfile
 import tempfile
+from pathlib import Path
+from platformdirs import user_cache_dir
 from typing import Optional
 
 import sentencepiece as spm
 import torch
 
 from .conversion import create_pytorch_state_dict
+from .language_info import LanguageInfo
 from .model import AfroLIDModel
 
 AFROLID_CACHE_DIR = Path(user_cache_dir('afrolid'))
@@ -36,7 +37,7 @@ def download_and_extract_model(path: Optional[str] = None) -> None:
             tar.extractall(AFROLID_CACHE_DIR if path is None else path)
 
 
-def load_afrolid_model_and_tokenizer(download_path: Optional[str] = None) -> tuple[AfroLIDModel, spm.SentencePieceProcessor]:
+def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLIDModel, spm.SentencePieceProcessor, LanguageInfo]:
     afrolid = AfroLIDModel()
 
     model_path = Path(download_path) if download_path else AFROLID_CACHE_DIR
@@ -57,4 +58,10 @@ def load_afrolid_model_and_tokenizer(download_path: Optional[str] = None) -> tup
     tokenizer = spm.SentencePieceProcessor()
     tokenizer.Load(str(model_path / "afrolid_model/afrolid_spm_517_bpe.model"))
 
-    return afrolid, tokenizer
+    language_info = LanguageInfo(model_path / "afrolid_model/dict_label.txt")
+
+    return afrolid, tokenizer, language_info
+    
+
+def prepare_input_for_model(text: str, tokenizer: spm.SentencePieceProcessor) -> torch.Tensor:
+    return torch.IntTensor([x+1 for x in tokenizer.EncodeAsIds(text)] + [2])
