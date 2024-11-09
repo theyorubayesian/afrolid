@@ -1,21 +1,23 @@
+import os
 import requests
 import tarfile
 import tempfile
 from pathlib import Path
 from platformdirs import user_cache_dir
-from typing import Optional
+from typing import Final, Optional
 
 import sentencepiece as spm
 import torch
+from tqdm import tqdm
 
 from .conversion import create_pytorch_state_dict
 from .language_info import LanguageInfo
 from .model import AfroLIDModel
 
-AFROLID_CACHE_DIR = Path(user_cache_dir('afrolid'))
+AFROLID_CACHE_DIR: Final[Path] = Path(os.getenv("AFROLID_CACHE_DIR", user_cache_dir('afrolid')))
 AFROLID_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-AFROLID_DOWNLOAD_URL = 'https://demos.dlnlp.ai/afrolid/afrolid_model.tar.gz'
+AFROLID_DOWNLOAD_URL: Final[str] = 'https://demos.dlnlp.ai/afrolid/afrolid_model.tar.gz'
 
 
 def download_and_extract_model(path: Optional[str] = None) -> None:
@@ -25,16 +27,23 @@ def download_and_extract_model(path: Optional[str] = None) -> None:
     ):
         return
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        download_path = Path(temp_dir) / 'afrolid_model.tar.gz'
+    download_dir = Path(path or tempfile.mkdtemp())
+    download_path = download_dir / 'afrolid_model.tar.gz'
 
-        response = requests.get(AFROLID_DOWNLOAD_URL, stream=True)
+    response = requests.get(AFROLID_DOWNLOAD_URL, stream=True)
+    file_size = int(response.headers.get('content-length', 0))
+
+    with tqdm(total=file_size, unit="iB", unit_scale=True, unit_divisor=1024) as progress_bar:
         with download_path.open('wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        with tarfile.open(download_path, 'r:gz') as tar:
-            tar.extractall(AFROLID_CACHE_DIR if path is None else path)
+            for chunk in response.iter_content(chunk_size=1024):
+                size = f.write(chunk)
+                progress_bar.update(size)
+    
+    with tarfile.open(str(download_path), 'r:*') as tar:
+        tar.extractall(AFROLID_CACHE_DIR if path is None else path)
+    
+    if not path:
+        download_path.unlink()
 
 
 def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLIDModel, spm.SentencePieceProcessor, LanguageInfo]:
@@ -43,25 +52,25 @@ def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLID
     model_path = Path(download_path) if download_path else AFROLID_CACHE_DIR
 
     if (model_path / "torch_model.bin").exists():
-        afrolid.load_state_dict(torch.load(model_path / "torch_model.bin"), strict=False)
+        afrolid.load_state_dict(torch.load(model_path / "torch_model.bin", weights_only=False), strict=False)
     else:
         download_and_extract_model(download_path)
-        fairseq_dict = torch.load(model_path / "afrolid_model/afrolid_v1_checkpoint.pt")
-        conversion_result = create_pytorch_state_dict(fairseq_dict)
+        fairseq_dict = torch.load(model_path / "afrolid_model/afrolid_v1_checkpoint.pt", weights_only=False)
+        conversion_result = create_pytorch_state_dict(fairseq_dict["model"])
 
         # TODO: @theyorubayesian - Sanity checks
         torch_dict = conversion_result["new_state_dict"]
-        torch.dump(torch_dict, model_path / "torch_model.bin")
+        torch.save(torch_dict, model_path / "torch_model.bin")
 
         afrolid.load_state_dict(torch_dict, strict=False)
 
     tokenizer = spm.SentencePieceProcessor()
     tokenizer.Load(str(model_path / "afrolid_model/afrolid_spm_517_bpe.model"))
 
-    language_info = LanguageInfo(model_path / "afrolid_model/dict_label.txt")
+    language_info = LanguageInfo(model_path / "afrolid_model/dict.label.txt")
 
     return afrolid, tokenizer, language_info
-    
+
 
 def prepare_input_for_model(text: str, tokenizer: spm.SentencePieceProcessor) -> torch.Tensor:
     return torch.IntTensor([x+1 for x in tokenizer.EncodeAsIds(text)] + [2])
