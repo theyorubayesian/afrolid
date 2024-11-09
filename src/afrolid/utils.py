@@ -46,7 +46,7 @@ def download_and_extract_model(path: Optional[str] = None) -> None:
         download_path.unlink()
 
 
-def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLIDModel, T5Tokenizer, LanguageInfo]:
+def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLIDModel, T5Tokenizer, Languages]:
     afrolid = AfroLIDModel()
 
     model_path = Path(download_path) if download_path else AFROLID_CACHE_DIR
@@ -71,7 +71,8 @@ def load_afrolid_artifacts(download_path: Optional[str] = None) -> tuple[AfroLID
     tokenizer.eos_token_id = 2
     tokenizer.unk_token_id = 3
     tokenizer.model_max_length = 1024
-    language_info = LanguageInfo(model_path / "afrolid_model/dict.label.txt")
+
+    language_info = Languages(model_path / "afrolid_model/dict.label.txt")
 
     return afrolid, tokenizer, language_info
 
