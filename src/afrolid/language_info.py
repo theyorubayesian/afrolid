@@ -521,9 +521,11 @@ class Language(Enum):
     POV = {'name': 'Guinea-Bissau Creole', 'script': 'Latin'}
 
 
-class LanguageInfo:
+LanguageInfo = TypedDict('Info', {'name': str, 'script': str, 'probability': float}, total=False)
+
+
+class Languages:
     _info: Final[Enum] = Language
-    Info = TypedDict('Info', {'name': str, 'script': str})
     def __init__(self, label_file: str):
         with open(label_file, "r") as f:
             self.idx2code = {
@@ -531,10 +533,10 @@ class LanguageInfo:
                 for idx, code in enumerate(f.readlines())
             }
     
-    def get_language_info_from_idx(self, idx_or_code: int | str) -> Info:
+    def get_language_info_from_idx(self, idx_or_code: int | str) -> LanguageInfo:
         laguage_code = idx_or_code.upper() if isinstance(idx_or_code, str) \
             else self.idx2code[idx_or_code].upper()
         return self._info[laguage_code].value
     
-    def __getitem__(self, idx_or_code: int | str) -> Info:
+    def __getitem__(self, idx_or_code: int | str) -> LanguageInfo:
         return self.get_language_info_from_idx(idx_or_code)
