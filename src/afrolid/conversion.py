@@ -21,17 +21,17 @@ key_mapping: Final[dict[str, str]] = {
     'encoder.layers.{layer_idx}.final_layer_norm.weight': 'encoder.layers.{layer_idx}.norm2.weight',
     'encoder.layers.{layer_idx}.final_layer_norm.bias': 'encoder.layers.{layer_idx}.norm2.bias',
     # Decoder layers
-    'decoder.layers.{layer_idx}.final_layer_norm.weight': 'decoder.layers.{layer_idx}.norm3.weight',
-    'decoder.layers.{layer_idx}.final_layer_norm.bias': 'decoder.layers.{layer_idx}.norm3.bias',
     'decoder.layers.{layer_idx}.encoder_attn_layer_norm.weight': 'decoder.layers.{layer_idx}.norm2.weight',
     'decoder.layers.{layer_idx}.encoder_attn_layer_norm.bias': 'decoder.layers.{layer_idx}.norm2.bias',
+    'decoder.layers.{layer_idx}.final_layer_norm.weight': 'decoder.layers.{layer_idx}.norm3.weight',
+    'decoder.layers.{layer_idx}.final_layer_norm.bias': 'decoder.layers.{layer_idx}.norm3.bias',
     'decoder.layers.{layer_idx}.encoder_attn.out_proj.weight': 'decoder.layers.{layer_idx}.multihead_attn.out_proj.weight',
     'decoder.layers.{layer_idx}.encoder_attn.out_proj.bias': 'decoder.layers.{layer_idx}.multihead_attn.out_proj.bias',
     'decoder.output_projection.weight': 'output_projection.weight'
 }
 
 
-def get_proj_weights_and_bias(state_dict, layer_idx, encoder_or_decoder='encoder') -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+def get_proj_weights_and_bias(state_dict, layer_idx, encoder_or_decoder='encoder') -> dict[str, list[str] | torch.Tensor]:
     """
     Concatenates the k_proj, v_proj, and q_proj weights and biases into in_proj_weight and in_proj_bias.
 
