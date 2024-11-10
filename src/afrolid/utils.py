@@ -83,6 +83,8 @@ def prepare_inputs_for_model(text: str | list[str], tokenizer: T5Tokenizer, **en
     not_eos_mask = (encoding["input_ids"] != tokenizer.eos_token_id)
     combined_mask = encoding["attention_mask"] * not_eos_mask
 
+    encoding["attention_mask"] = encoding["attention_mask"] < 1
+    
     # Increment only the non-masked and non-EOS positions by 1
     # FairSeq's encodings always returns 1 greater than the spm Processor's encoding
     encoding["input_ids"] = encoding["input_ids"] + combined_mask
@@ -95,18 +97,18 @@ def predict_language(
     tokenizer: T5Tokenizer,
     languages: Languages,
     top_k: int = 3,
-    **tokenizer_kwargs
+    **tokenizer_kwargs: Any
 ) -> list[list[LanguageInfo]]:
     encoding = prepare_inputs_for_model(text, tokenizer, **tokenizer_kwargs)
-    outputs = model(encoding["input_ids"]).detach().topk(top_k)
+    outputs = model(**encoding).detach().topk(top_k)
 
     probabilities = outputs.values.squeeze().tolist()
     language_ids = outputs.indices.squeeze().tolist()
 
-    languages = [[languages[_id] for _id in id_list] for id_list in language_ids]
+    predictions = [[languages[_id] for _id in id_list] for id_list in language_ids]
 
-    for idx, predicted_languages in enumerate(languages):
+    for idx, predicted_languages in enumerate(predictions):
         for lang_idx, info in enumerate(predicted_languages):
             info["probability"] = probabilities[idx][lang_idx]
     
-    return languages
+    return predictions

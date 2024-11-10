@@ -138,10 +138,10 @@ class AfroLIDModel(nn.Transformer):
         
         self.output_projection = nn.Linear(d_model, num_classes, bias=False)
 
-    def forward(self, input_ids: torch.Tensor, decoder_input_ids: torch.Tensor = None) -> torch.Tensor:        
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor = None, decoder_input_ids: torch.Tensor = None) -> torch.Tensor:        
         encoder_embeds = self.encoder_emb(input_ids) * self.scale_factor
         encoder_embeds += self.pos_encoder(input_ids)
-        encoder_output = self.encoder(encoder_embeds)
+        encoder_output = self.encoder(encoder_embeds, src_key_padding_mask=attention_mask)
         
         batch_size = input_ids.size(0)
         if decoder_input_ids is None:
