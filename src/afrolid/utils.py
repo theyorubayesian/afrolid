@@ -97,9 +97,11 @@ def predict_language(
     tokenizer: T5Tokenizer,
     languages: Languages,
     top_k: int = 3,
+    device: torch.device = "cpu",
     **tokenizer_kwargs: Any
 ) -> list[list[LanguageInfo]]:
-    encoding = prepare_inputs_for_model(text, tokenizer, **tokenizer_kwargs)
+    model = model.to(device)
+    encoding = prepare_inputs_for_model(text, tokenizer, **tokenizer_kwargs).to(device)
     outputs = model(**encoding).detach().topk(top_k)
 
     probabilities = outputs.values.squeeze().tolist()
