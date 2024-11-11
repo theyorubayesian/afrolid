@@ -4,7 +4,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 from platformdirs import user_cache_dir
-from typing import Any, Final, Optional
+from typing import Any, Final, Optional, TypeAlias
 
 import torch
 from tqdm import tqdm
@@ -19,6 +19,7 @@ AFROLID_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 AFROLID_DOWNLOAD_URL: Final[str] = 'https://demos.dlnlp.ai/afrolid/afrolid_model.tar.gz'
 
+Prediction: TypeAlias = list[LanguageInfo]
 
 def download_and_extract_model(path: Optional[str] = None) -> None:
     if any(
@@ -99,13 +100,13 @@ def predict_language(
     top_k: int = 3,
     device: torch.device = "cpu",
     **tokenizer_kwargs: Any
-) -> list[list[LanguageInfo]]:
+) -> Prediction | list[Prediction]:
     model = model.to(device)
     encoding = prepare_inputs_for_model(text, tokenizer, **tokenizer_kwargs).to(device)
     outputs = model(**encoding).detach().topk(top_k)
 
-    probabilities = outputs.values.squeeze().tolist()
-    language_ids = outputs.indices.squeeze().tolist()
+    probabilities = outputs.values.squeeze(1).tolist()
+    language_ids = outputs.indices.squeeze(1).tolist()
 
     predictions = [[languages[_id] for _id in id_list] for id_list in language_ids]
 
@@ -113,4 +114,4 @@ def predict_language(
         for lang_idx, info in enumerate(predicted_languages):
             info["probability"] = probabilities[idx][lang_idx]
     
-    return predictions
+    return predictions[0] if isinstance(text, str) else predictions
